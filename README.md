@@ -1,3 +1,8 @@
+# Assignment 1:
+test_train_bpe: Pass
+test_tokenizer: DOING
+
+
 # CS336 Spring 2025 Assignment 1: Basics
 
 For a full description of the assignment, see the assignment handout at

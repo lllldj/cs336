@@ -51,6 +51,7 @@ def find_chunk_boundaries(
     # Make sure all boundaries are unique, but might be fewer than desired_num_chunks
     return sorted(set(chunk_boundaries))
 
+
 def pre_tokenize_split(filepath, bound_st, bound_ed, pattern, special_tokens):
     with open(filepath, "rb") as f:
         f.seek(bound_st)
@@ -136,6 +137,74 @@ def my_train_bpe(filepath,vocab_size,special_tokens,PAT,num_processes=4):
         merge_list.append((token_dict[pairnow[0]],token_dict[pairnow[1]]))
         token_id += 1
     for s in special_tokens:
-        token_dict[token_id] = bytes(s.encode("utf-8"))
+        token_dict[token_id] = s.encode("utf-8")
         token_id += 1
     return token_dict, merge_list
+
+
+class myTokenizer:
+    def __init__(self, vocab, merges, pattern,special_tokens=None) -> None:
+        self.vocab = vocab
+        self.merges = merges
+        self.special_tokens = special_tokens #str
+        self.pattern = pattern
+        self.tk_to_id = {token:id for id,token in vocab.items()}  #bytes
+        self.byte_id = [self.tk_to_id[bytes([i])] for i in range(256)]
+        #initial for special tokens
+        if special_tokens:
+            id_allo = max(id for id in self.vocab) + 1
+            for tk_str in special_tokens:
+                tk = tk_str.encode("utf-8")
+                if tk not in self.tk_to_id:
+                    self.tk_to_id[tk] = id_allo
+                    self.vocab[id_allo] = tk 
+                    id_allo += 1
+                    
+        if self.special_tokens:
+            toks = sorted(set(self.special_tokens), key=lambda s: (-len(s), s))
+            special_pat = "|".join(map(re.escape, toks))
+        else:
+            special_pat = None
+        self.special_re = re.compile(f"({special_pat})") if special_pat else None
+        
+    def encode(self, text):
+        chunk_set = [s for s in self.special_re.split(text) if s] if self.special_re else [text]
+        text_seq = []
+        token_seq = []
+        for small_chunk in chunk_set:
+            if self.special_tokens and (small_chunk in self.special_tokens):
+                text_seq += [small_chunk]
+            else:
+                text_seq += re.findall(self.pattern, small_chunk)
+        for small_text in text_seq:
+            if self.special_tokens and small_text in self.special_tokens:
+                token_seq += [self.tk_to_id[small_text.encode("utf-8")]]
+                continue
+            btext_list = [self.byte_id[x] for x in small_text.encode("utf-8")]
+            for m1,m2 in self.merges:
+                _ = 0
+                btext_new = []
+                while(_ < len(btext_list)):
+                    if _ + 1 < len(btext_list) and btext_list[_] == self.tk_to_id[m1] and btext_list[_+1] == self.tk_to_id[m2]:
+                        btext_new.append(self.tk_to_id[m1+m2])
+                        _ += 2
+                    else:
+                        btext_new.append(btext_list[_])
+                        _ += 1
+                btext_list = btext_new
+            token_seq += btext_list  
+        return token_seq
+    def encode_iterable(self, iterable):
+        for text in iterable:
+            ids = self.encode(text)
+            for id in ids:
+                yield id
+    def decode(self, ids:list[int]):
+        res = b''
+        for id in ids:
+            if type(id) == list:
+               pass
+            else: 
+                res += self.vocab[id]
+        res = res.decode("utf-8",errors="ignore")
+        return res 
