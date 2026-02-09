@@ -132,6 +132,6 @@ def my_train_bpe(filepath,vocab_size,special_tokens,PAT,num_processes=4):
         merge_list.append((token_dict[pairnow[0]],token_dict[pairnow[1]]))
         token_id += 1
     for s in special_tokens:
-        token_dict[token_id] = bytes(s)
+        token_dict[token_id] = s
         token_id += 1
     return token_dict, merge_list
