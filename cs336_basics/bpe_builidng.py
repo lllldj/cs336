@@ -3,6 +3,8 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 from typing import BinaryIO
 
+#naive BPE TODO: optimize
+#------------------------------------------------------------------------------------
 def find_chunk_boundaries(
     file: BinaryIO,
     desired_num_chunks: int,
@@ -96,7 +98,9 @@ def find_max(_pair_cnt,_token_dict):
     for p,v in _pair_cnt.items():
         if v == maxcnt:
             bytes_pair_new = _token_dict[p[0]],_token_dict[p[1]]
-            maxpair = p if bytes_pair_new>bytes_pair else maxpair
+            if bytes_pair_new > bytes_pair:
+                bytes_pair = bytes_pair_new
+                maxpair = p
         if v > maxcnt:
             maxcnt = v
             maxpair = p
@@ -132,6 +136,6 @@ def my_train_bpe(filepath,vocab_size,special_tokens,PAT,num_processes=4):
         merge_list.append((token_dict[pairnow[0]],token_dict[pairnow[1]]))
         token_id += 1
     for s in special_tokens:
-        token_dict[token_id] = s
+        token_dict[token_id] = bytes(s.encode("utf-8"))
         token_id += 1
     return token_dict, merge_list
