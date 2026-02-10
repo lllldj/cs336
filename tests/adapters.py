@@ -114,7 +114,7 @@ def run_scaled_dot_product_attention(
     #raise NotImplementedError
     return toy_product_atte(Q,K,V,mask)
 
-
+from cs336_basics.myFunctional import toy_multihead_atte
 def run_multihead_self_attention(
     d_model: int,
     num_heads: int,
@@ -146,9 +146,11 @@ def run_multihead_self_attention(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+    
+    #raise NotImplementedError
+    return toy_multihead_atte(d_model,num_heads,q_proj_weight,k_proj_weight,v_proj_weight,o_proj_weight,in_features)
 
-
+from cs336_basics.myFunctional import toy_multihead_atte_rope
 def run_multihead_self_attention_with_rope(
     d_model: int,
     num_heads: int,
@@ -186,7 +188,8 @@ def run_multihead_self_attention_with_rope(
         Float[Tensor, " ... sequence_length d_out"]: Tensor with the output of running your optimized, batched multi-headed attention
         implementation with the given QKV projection weights and input features.
     """
-    raise NotImplementedError
+    #raise NotImplementedError
+    return toy_multihead_atte_rope(d_model,num_heads,max_seq_len,theta,q_proj_weight,k_proj_weight,v_proj_weight,o_proj_weight,in_features,token_positions)
 
 from cs336_basics.myModule import toy_RoPE
 def run_rope(
