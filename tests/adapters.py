@@ -92,6 +92,7 @@ def run_swiglu(
     #raise NotImplementedError
     return SG.forward(in_features)
 
+from cs336_basics.myFunctional import toy_product_atte
 def run_scaled_dot_product_attention(
     Q: Float[Tensor, " ... queries d_k"],
     K: Float[Tensor, " ... keys d_k"],
@@ -110,7 +111,8 @@ def run_scaled_dot_product_attention(
     Returns:
         Float[Tensor, " ... queries d_v"]: Output of SDPA
     """
-    raise NotImplementedError
+    #raise NotImplementedError
+    return toy_product_atte(Q,K,V,mask)
 
 
 def run_multihead_self_attention(

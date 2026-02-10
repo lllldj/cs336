@@ -19,7 +19,7 @@ class toy_Liner(nn.Module):
             self.weight.data = w
     
     def forward(self,x):
-        out = x @ self.weight.T
+        out = x @ self.weight.transpose(-2,-1)
         if self.bias != None:
             out += self.bias
         return out
@@ -85,10 +85,10 @@ class toy_SwiGLU(nn.Module):
             self.W3.data = w3
     
     def forward(self,x):
-        W3x = x @ self.W3.T
-        W1x = x @ self.W1.T
+        W3x = x @ self.W3.transpose(-2,-1)
+        W1x = x @ self.W1.transpose(-2,-1)
         Slu = W1x * torch.sigmoid(W1x)
-        return (Slu * W3x)@self.W2.T
+        return (Slu * W3x)@self.W2.transpose(-2,-1)
     
     
 class toy_RoPE(nn.Module):
