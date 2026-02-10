@@ -17,6 +17,8 @@ def toy_product_atte(Q, K, V, mask=None):
     sQk = toy_softmax(Qk)
     return sQk @ V
 
+
+#never used in multi_head attention.
 def toy_multihead_atte(d_model,num_heads,Qp,Kp,Vp,proj,in_features,posistion=None):
     Qs = (in_features @ Qp.transpose(-2,-1)).split(d_model//num_heads,-1)
     Ks = (in_features @ Kp.transpose(-2,-1)).split(d_model//num_heads,-1)
@@ -29,6 +31,7 @@ def toy_multihead_atte(d_model,num_heads,Qp,Kp,Vp,proj,in_features,posistion=Non
     atts = torch.cat(atts,-1)
     return atts @  proj.transpose(-2,-1)
 
+#never used in multi_head attention.
 def toy_multihead_atte_rope(d_model: int,
     num_heads: int,
     max_seq_len: int,
