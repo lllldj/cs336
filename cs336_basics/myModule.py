@@ -61,3 +61,31 @@ class toy_RMSnorm(nn.Module):
         rmsx = x.square().mean(-1,keepdim=True) 
         out = x*self.gain/torch.sqrt(rmsx+self.eps)
         return out 
+    
+class toy_SwiGLU(nn.Module):
+    def __init__(self, d_model, d_ff, device=None, dtype=torch.float32):
+        super().__init__()
+        self.W1 = nn.Parameter(torch.empty(d_ff,d_model,dtype=dtype))
+        self.W2 = nn.Parameter(torch.empty(d_model,d_ff,dtype=dtype))
+        self.W3 = nn.Parameter(torch.empty(d_ff,d_model,dtype=dtype))
+    
+        self.set_para()
+    def set_para(self,w1=None,w2=None,w3=None):
+        if w1 == None:
+            nn.init.trunc_normal_(self.W1)
+        else:
+            self.W1.data = w1
+        if w2 == None:
+            nn.init.trunc_normal_(self.W2)
+        else:
+            self.W2.data = w2
+        if w3 == None:
+            nn.init.trunc_normal_(self.W3)
+        else:
+            self.W3.data = w3
+    
+    def forward(self,x):
+        W3x = x @ self.W3.T
+        W1x = x @ self.W1.T
+        Slu = W1x * torch.sigmoid(W1x)
+        return (Slu * W3x)@self.W2.T

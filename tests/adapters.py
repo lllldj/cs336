@@ -57,6 +57,7 @@ def run_embedding(
     #raise NotImplementedError
     return E.forward(token_ids)
 
+from cs336_basics.myModule import toy_SwiGLU
 def run_swiglu(
     d_model: int,
     d_ff: int,
@@ -86,8 +87,10 @@ def run_swiglu(
     # swiglu.w1.weight.data = w1_weight
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
-    raise NotImplementedError
-
+    SG = toy_SwiGLU(d_model,d_ff)
+    SG.set_para(w1_weight,w2_weight,w3_weight)
+    #raise NotImplementedError
+    return SG.forward(in_features)
 
 def run_scaled_dot_product_attention(
     Q: Float[Tensor, " ... queries d_k"],
