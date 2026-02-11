@@ -1,6 +1,11 @@
 # Assignment 1:
-test_train_bpe: Pass But need to optimize
-test_tokenizer: Almost Pass, Need to optimize 
+Train_Bpe: Pass But need to optimize
+Tokenizer: Almost Pass, Need to optimize 
+Model: Pass
+Optimizer: Pass
+Data: Doing checkpoint. 
+
+# TODO: try update torch to suit 5060.
 
 
 # CS336 Spring 2025 Assignment 1: Basics
