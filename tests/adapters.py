@@ -92,7 +92,7 @@ def run_swiglu(
     #raise NotImplementedError
     return SG.forward(in_features)
 
-from cs336_basics.myFunctional import toy_product_atte
+from cs336_basics.myModule import toy_product_atte
 def run_scaled_dot_product_attention(
     Q: Float[Tensor, " ... queries d_k"],
     K: Float[Tensor, " ... keys d_k"],
@@ -114,7 +114,7 @@ def run_scaled_dot_product_attention(
     #raise NotImplementedError
     return toy_product_atte(Q,K,V,mask)
 
-from cs336_basics.myFunctional import toy_multihead_atte
+from cs336_basics.myModule import toy_multihead_atte
 def run_multihead_self_attention(
     d_model: int,
     num_heads: int,
@@ -150,7 +150,7 @@ def run_multihead_self_attention(
     #raise NotImplementedError
     return toy_multihead_atte(d_model,num_heads,q_proj_weight,k_proj_weight,v_proj_weight,o_proj_weight,in_features)
 
-from cs336_basics.myFunctional import toy_multihead_atte_rope
+from cs336_basics.myModule import toy_multihead_atte_rope
 def run_multihead_self_attention_with_rope(
     d_model: int,
     num_heads: int,
@@ -434,7 +434,7 @@ def run_get_batch(
     """
     raise NotImplementedError
 
-from cs336_basics.myFunctional import toy_softmax
+from cs336_basics.myModule import toy_softmax
 def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
     """
     Given a tensor of inputs, return the output of softmaxing the given `dim`
@@ -610,5 +610,5 @@ def run_train_bpe(
                 Merges are ordered by order of creation.
     """
     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-    raise NotImplementedError
+    #raise NotImplementedError
     return toy_train_bpe(input_path,vocab_size,special_tokens,PAT)
