@@ -3,6 +3,60 @@ import torch.nn as nn
 import os
 
 
+def toy_softmax(x):
+    sx = x -  x.max(-1,keepdim=True).values
+    ex = sx.exp()
+    return ex/ex.sum(-1,keepdim=True)
+
+def toy_product_atte(Q, K, V, mask=None):
+    d_k = torch.tensor(Q.shape[-1])
+    Qk = Q @ K.transpose(-2,-1)/ torch.sqrt(d_k)
+    if mask is not None:
+        Qk = Qk.masked_fill(mask==False,float('-inf'))
+    sQk = toy_softmax(Qk)
+    return sQk @ V
+
+
+#never used in multi_head attention.
+def toy_multihead_atte(d_model,num_heads,Qp,Kp,Vp,proj,in_features,posistion=None):
+    Qs = (in_features @ Qp.transpose(-2,-1)).split(d_model//num_heads,-1)
+    Ks = (in_features @ Kp.transpose(-2,-1)).split(d_model//num_heads,-1)
+    Vs = (in_features @ Vp.transpose(-2,-1)).split(d_model//num_heads,-1)
+    
+    seq_len = Qs[0].size(-2)
+    mask = torch.tril(torch.ones(seq_len,seq_len))
+    
+    atts = [toy_product_atte(Qs[i],Ks[i],Vs[i],mask) for i in range(num_heads)]
+    atts = torch.cat(atts,-1)
+    return atts @  proj.transpose(-2,-1)
+
+#never used in multi_head attention.
+def toy_multihead_atte_rope(d_model: int,
+    num_heads: int,
+    max_seq_len: int,
+    theta: float,
+    Qp, #Float[Tensor, " d_k d_in"],
+    Kp, #Float[Tensor, " d_k d_in"],
+    Vp, #Float[Tensor, " d_v d_in"],
+    proj, #Float[Tensor, " d_model d_v"],
+    in_features, #Float[Tensor, " ... sequence_length d_in"],
+    token_positions, #Int[Tensor, " ... sequence_length"] | None = None,
+):# -> Float[Tensor, " ... sequence_length d_out"]
+    Ro = toy_RoPE(d_model//num_heads,theta,max_seq_len) #
+    Qs = (in_features @ Qp.transpose(-2,-1)).split(d_model//num_heads,-1)
+    Ks = (in_features @ Kp.transpose(-2,-1)).split(d_model//num_heads,-1)
+    Vs = (in_features @ Vp.transpose(-2,-1)).split(d_model//num_heads,-1)
+    
+    Qs = [Ro.forward(Qs[i],token_positions) for i in range(num_heads)] #
+    Ks = [Ro.forward(Ks[i],token_positions) for i in range(num_heads)]
+    
+    seq_len = Qs[0].size(-2)
+    mask = torch.tril(torch.ones(seq_len,seq_len))
+    atts = [toy_product_atte(Qs[i],Ks[i],Vs[i],mask) for i in range(num_heads)]
+    atts = torch.cat(atts,-1)
+    return atts @  proj.transpose(-2,-1)
+
+
 class toy_Liner(nn.Module):
     def __init__(self, in_features, out_features, bias=None, device=None, dtype=torch.float32):
         super().__init__()
@@ -119,3 +173,65 @@ class toy_RoPE(nn.Module):
         y2 = x1 * sin + x2 * cos
         y_rot = torch.stack([y1, y2], dim=-1).flatten(-2)
         return torch.cat([y_rot, x_pass], dim=-1)
+    
+    
+class multi_attention(nn.Module):
+    def __init__(self, d_in, num_heads, max_seq_len, theta, device = None) -> None:
+        super().__init__()
+        self.c_attention = toy_Liner(d_in, 3* d_in)
+        self.proj = toy_Liner(d_in,d_in)
+        self.num_head = num_heads
+        self.d_head = d_in//self.num_head       
+        self.ropez = toy_RoPE(self.d_head, theta ,max_seq_len)
+        self.device = device
+        
+        trill_mask = torch.tril(torch.ones(max_seq_len,max_seq_len,dtype=torch.bool))
+        self.register_buffer("trill",trill_mask,persistent=False)
+    
+    
+    def forward(self,x):
+        B, T, C = x.shape
+        qkv = self.c_attention(x) #B,T,C @ C 3C -> B,T,3C
+        Q,K,V = qkv.split(C,-1) # B,T,C
+        
+        qs = Q.view(B,T,self.num_head,self.d_head).transpose(1,2)
+        ks = K.view(B,T,self.num_head,self.d_head).transpose(1,2) #B,h,T,d_h
+        vs = V.view(B,T,self.num_head,self.d_head).transpose(1,2)
+        
+        tk_ps = torch.arange(T)
+        qs = self.ropez.forward(qs,tk_ps)  
+        ks = self.ropez.forward(ks,tk_ps)
+        
+        atts = toy_product_atte(qs,ks,vs,self.trill[:T,:T]).transpose(1, 2).contiguous().view(B,T,C) # B, T ,C
+        return self.proj(atts)
+    
+class transformer_block(nn.Module):
+    def __init__(self, d_in, num_heads, d_ff, max_seq_len, theta, device=None) -> None:
+        super().__init__()   
+        self.norm1 = toy_RMSnorm(d_in)
+        self.atte = multi_attention(d_in,num_heads,max_seq_len,theta,device)
+        self.norm2 = toy_RMSnorm(d_in)
+        self.ff = toy_SwiGLU(d_in,d_ff)
+        self.device = device
+    
+    def set_para(self,para_dict):
+        q_proj_weight = para_dict["attn.q_proj.weight"]
+        k_proj_weight = para_dict["attn.k_proj.weight"]
+        v_proj_weight = para_dict["attn.v_proj.weight"]
+        o_proj_weight = para_dict["attn.output_proj.weight"]
+        ln1_weight = para_dict["ln1.weight"]
+        ln2_weight = para_dict["ln2.weight"]
+        ff_w1 = para_dict["ffn.w1.weight"]
+        ff_w2 = para_dict["ffn.w2.weight"]
+        ff_w3 = para_dict["ffn.w3.weight"]
+        c_atte_weight = torch.cat([q_proj_weight,k_proj_weight,v_proj_weight],0)
+        self.atte.c_attention.set_weights(c_atte_weight)
+        self.atte.proj.set_weights(o_proj_weight)
+        self.norm1.set_para(ln1_weight)
+        self.norm2.set_para(ln2_weight)
+        self.ff.set_para(ff_w1,ff_w2,ff_w3)
+        
+    def forward(self,x):
+        x = x + self.atte(self.norm1(x))
+        x = x + self.ff(self.norm2(x))
+        return x

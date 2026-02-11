@@ -215,7 +215,7 @@ def run_rope(
     return Ro.forward(in_query_or_key,token_positions)
     #raise NotImplementedError
 
-
+from cs336_basics.myModule import transformer_block
 def run_transformer_block(
     d_model: int,
     num_heads: int,
@@ -286,8 +286,10 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
-
+    tb = transformer_block(d_model,num_heads,d_ff,max_seq_len,theta)
+    tb.set_para(weights)
+    #raise NotImplementedError
+    return tb.forward(in_features)
 
 def run_transformer_lm(
     vocab_size: int,
@@ -608,5 +610,5 @@ def run_train_bpe(
                 Merges are ordered by order of creation.
     """
     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-    #raise NotImplementedError
+    raise NotImplementedError
     return toy_train_bpe(input_path,vocab_size,special_tokens,PAT)
