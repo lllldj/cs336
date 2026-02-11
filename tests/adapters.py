@@ -438,7 +438,7 @@ def run_get_batch(
     """
     raise NotImplementedError
 
-from cs336_basics.myModule import toy_softmax
+from cs336_basics.myFunctional import toy_softmax
 def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
     """
     Given a tensor of inputs, return the output of softmaxing the given `dim`
@@ -455,7 +455,7 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
     #raise NotImplementedError
     return toy_softmax(in_features)
 
-
+from cs336_basics.myFunctional import toy_cross_entry
 def run_cross_entropy(
     inputs: Float[Tensor, " batch_size vocab_size"], targets: Int[Tensor, " batch_size"]
 ) -> Float[Tensor, ""]:
@@ -471,7 +471,8 @@ def run_cross_entropy(
     Returns:
         Float[Tensor, ""]: The average cross-entropy loss across examples.
     """
-    raise NotImplementedError
+    #raise NotImplementedError
+    return toy_cross_entry(inputs,targets)
 
 
 def run_gradient_clipping(parameters: Iterable[torch.nn.Parameter], max_l2_norm: float) -> None:

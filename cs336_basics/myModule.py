@@ -3,22 +3,7 @@ import torch.nn as nn
 import os
 import re
 from collections import defaultdict
-
-def toy_softmax(x):
-    sx = x -  x.max(-1,keepdim=True).values
-    ex = sx.exp()
-    return ex/ex.sum(-1,keepdim=True)
-
-def toy_product_atte(Q, K, V, mask=None):
-    d_k = torch.tensor(Q.shape[-1])
-    Qk = Q @ K.transpose(-2,-1)/ torch.sqrt(d_k)
-    if mask is not None:
-        Qk = Qk.masked_fill(mask==False,float('-inf'))
-    sQk = toy_softmax(Qk)
-    return sQk @ V
-
-
-
+from cs336_basics.myFunctional import toy_product_atte,toy_softmax
 
 
 class toy_Liner(nn.Module):
@@ -140,7 +125,8 @@ class toy_RoPE(nn.Module):
 
 
 
-#never used in multi_head attention.
+#---------------------------------------------------------------------------------
+#used in uv test only
 def toy_multihead_atte(d_model,num_heads,Qp,Kp,Vp,proj,in_features,posistion=None):
     Qs = (in_features @ Qp.transpose(-2,-1)).split(d_model//num_heads,-1)
     Ks = (in_features @ Kp.transpose(-2,-1)).split(d_model//num_heads,-1)
@@ -179,7 +165,7 @@ def toy_multihead_atte_rope(d_model: int,
     atts = torch.cat(atts,-1)
     return atts @  proj.transpose(-2,-1)
 
-
+#---------------------------------------------------------------------------------
     
 class multi_attention(nn.Module):
     def __init__(self, d_in, num_heads, max_seq_len, theta, device = None) -> None:
@@ -205,8 +191,8 @@ class multi_attention(nn.Module):
         vs = V.view(B,T,self.num_head,self.d_head).transpose(1,2)
         
         tk_ps = torch.arange(T)
-        qs = self.ropez.forward(qs,tk_ps)  
-        ks = self.ropez.forward(ks,tk_ps)
+        qs = self.ropez(qs,tk_ps)  
+        ks = self.ropez(ks,tk_ps)
         
         atts = toy_product_atte(qs,ks,vs,self.trill[:T,:T]).transpose(1, 2).contiguous().view(B,T,C) # B, T ,C
         return self.proj(atts)
@@ -246,7 +232,7 @@ class transformer_block(nn.Module):
     
 
 class toy_Transformer_lm(nn.Module):
-    def __init__(self, vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta, device = None) -> None:
+    def __init__(self, vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta, device = None) :
         super().__init__()
         self.tk_embd = toy_Embedding(vocab_size,d_model)
         self.blocks =nn.ModuleList([transformer_block(d_model,num_heads,d_ff,context_length,rope_theta) for _ in range(num_layers)])
@@ -269,7 +255,7 @@ class toy_Transformer_lm(nn.Module):
         layer_dict = dict(grouped)
         for _ ,blk in enumerate(self.blocks):
             blk.set_para(layer_dict[_])
-    def forward(self,x):
+    def forward(self,x): #logits
         #x : ids
         x = self.tk_embd(x)
         for blk in self.blocks:
