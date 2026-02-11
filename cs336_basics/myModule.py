@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import os
-
+import re
+from collections import defaultdict
 
 def toy_softmax(x):
     sx = x -  x.max(-1,keepdim=True).values
@@ -48,9 +49,9 @@ class toy_Embedding(nn.Module):
         self.embd = nn.Parameter(torch.empty(num_embd,embd_dim,dtype=dtype))
         self.device = device
 
-        self.set_embd()
+        self.set_para()
         
-    def set_embd(self,embd=None):
+    def set_para(self,embd=None):
         if embd == None:
             nn.init.trunc_normal_(self.embd)
         else:
@@ -240,3 +241,38 @@ class transformer_block(nn.Module):
         x = x + self.atte(self.norm1(x))
         x = x + self.ff(self.norm2(x))
         return x
+    
+    
+    
+
+class toy_Transformer_lm(nn.Module):
+    def __init__(self, vocab_size, context_length, d_model, num_layers, num_heads, d_ff, rope_theta, device = None) -> None:
+        super().__init__()
+        self.tk_embd = toy_Embedding(vocab_size,d_model)
+        self.blocks =nn.ModuleList([transformer_block(d_model,num_heads,d_ff,context_length,rope_theta) for _ in range(num_layers)])
+        self.norm = toy_RMSnorm(d_model)
+        self.out_embd = toy_Liner(d_model,vocab_size)
+    
+    def set_para(self,para_dict):
+        self.tk_embd.set_para(para_dict["token_embeddings.weight"])
+        self.out_embd.set_weights(para_dict["lm_head.weight"])
+        self.norm.set_para(para_dict["ln_final.weight"])
+        grouped = defaultdict(dict)
+        pat = re.compile(r"^layers\.(\d+)\.(.+)$")  # layers.{i}.rest
+
+        for k, v in para_dict.items():
+            m = pat.match(k)
+            if m:
+                i = int(m.group(1))
+                rest = m.group(2)  # e.g. "ffn.w3.weight"
+                grouped[i][rest] = v
+        layer_dict = dict(grouped)
+        for _ ,blk in enumerate(self.blocks):
+            blk.set_para(layer_dict[_])
+    def forward(self,x):
+        #x : ids
+        x = self.tk_embd(x)
+        for blk in self.blocks:
+            x = blk(x)
+        x = self.norm(x)
+        return self.out_embd(x)

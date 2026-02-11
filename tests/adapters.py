@@ -53,7 +53,7 @@ def run_embedding(
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
     E = toy_Embedding(vocab_size,d_model)
-    E.set_embd(weights)
+    E.set_para(weights)
     #raise NotImplementedError
     return E.forward(token_ids)
 
@@ -291,6 +291,7 @@ def run_transformer_block(
     #raise NotImplementedError
     return tb.forward(in_features)
 
+from cs336_basics.myModule import toy_Transformer_lm
 def run_transformer_lm(
     vocab_size: int,
     context_length: int,
@@ -370,8 +371,11 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    raise NotImplementedError
-
+    t_lm = toy_Transformer_lm(vocab_size,context_length,d_model,num_layers,num_heads,d_ff,rope_theta)
+    t_lm.set_para(weights)
+    #raise NotImplementedError
+    return t_lm(in_indices)
+    
 from cs336_basics.myModule import toy_RMSnorm
 def run_rmsnorm(
     d_model: int,
