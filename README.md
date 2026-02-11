@@ -5,7 +5,7 @@ Model: Pass
 Optimizer: Pass
 Data: Doing checkpoint. 
 
-# TODO: try update torch to suit 5060.
+update torch to suit 5060 Done.
 
 
 # CS336 Spring 2025 Assignment 1: Basics
